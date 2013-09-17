@@ -1,0 +1,73 @@
+#!/bin/bash
+
+# Simple bash script to download the daily free allowance of random bytes from random.org
+
+function checkError
+{
+    if [ "$?" -ne "0" ]; then
+        if [ -n "$2" ]; then
+            echo "$0: Error: $2" >&2
+        fi
+        if [ -n "$1" ]; then
+            exit "$1"
+        else
+            exit 1
+        fi
+    fi
+}
+
+function require
+{
+    if [ -z "$1" ]; then
+        echo "Error: 'require' requires an argument" >&2
+        exit 1
+    fi
+
+    which $1 > /dev/null 2>&1
+
+    if [ "$?" -ne "0" ]; then
+        echo "Required command: '$1' not found" >&2
+        exit 1
+    fi
+}
+
+require xxd
+require wget
+
+echo ----------------------------------------
+date -R
+
+quota=$(wget -qO- "http://www.random.org/quota/?format=plain")
+if [ -z "$quota" ]; then
+  echo "Quota string is empty. Exiting."
+  exit 1
+fi
+echo "Current quota: $quota bits"
+if [ "$quota" -lt "200000" ]; then
+  echo "Insufficient quota (<200000 bits). Exiting."
+  exit 1
+fi
+
+sleep 3
+
+mkdir -p data
+destFile=data/${1-$(date +%Y%m)}
+
+echo -n "Retrieving 8333 bytes ... "
+wget -qO- "http://www.random.org/integers/?num=8333&min=0&max=255&col=16&base=16&format=plain&md=new" | xxd -r -p - - >> $destFile
+checkError
+echo "done."
+sleep 3
+
+echo -n "Retrieving 8333 bytes ... "
+wget -qO- "http://www.random.org/integers/?num=8333&min=0&max=255&col=16&base=16&format=plain&md=new" | xxd -r -p - - >> $destFile
+checkError
+echo "done."
+sleep 3
+
+echo -n "Retrieving 8334 bytes ... "
+wget -qO- "http://www.random.org/integers/?num=8334&min=0&max=255&col=16&base=16&format=plain&md=new" | xxd -r -p - - >> $destFile
+checkError
+echo "done."
+
+echo "25000 bytes added to $destFile"
